@@ -1,6 +1,11 @@
 Tapas: An R package to taming the uncertainty of Chatgpt in cell type annotation
 ====
 
+## Introduction
+Cell type annotation is a critical and fundamental step in the analysis of single-cell data, as it enables the identification and classification of distinct cell populations within a complex tissue or biological system. Recently, large language models (LLMs) are demonstrating immense potential and highly useful tools in various aspects of biomedical research, as well as cell type annotation tasks. Generative pre-trained transformers (GPT), including GPT-3.5 and GPT-4, have demonstrated impressive, human expert-equivalent accuracy for cell type annotation. However, when prompt GPTs for multiple time with the same marker genes input, users often experience varied cell type label outcomes. Because LLMs generate text based on statistical patterns and probability, there isn’t just one "correct" answer. Instead, there are multiple possible answers, each with a different likelihood.
+
+Here, we first report a method to evaluate and quantify the confidence of cell type annotation in LLMs by ‘fighting fire with fire.’ Our proposed framework integrates two components: the linguistic implications of the output text; and a data-driven method to quantify the dissimilarity between cell types. The core algorithm of *Tapas* builds upon the cell type hierarchical tree, and borrows cell type dissimilarity information using atlas-scale scRNA-seq data. At its first step, a cell type hierarchical tree is constructed for a specific tissue, representing the biological lineage and relationships between various cell types. Using this hierarchy tree, the algorithm recursively evaluates a newly predicted cell type name by assessing its semantic properties at each level, from broad categories to cell subtypes. In its second step, *Tapas* will precisely pin down each of the predicted cell type names onto a node on the tree. All the N predicted cell type names will reside on some nodes somewhere on the tree. At its third step, *Tapas* will borrow information from our pre-calculated cell-type-to-cell-type dissimilarity matrix for available cell types in the tree, and construct a subgraph of the predicted cell types. In this graph, the nodes are predicted cell type names and the edges are pairwise distance between cell types. Next, an ‘average distance’ is calculated by taking the mean of all lengths of edges. Finally, the ‘average distance’ will be referenced against a null distribution of bootstrapped mean distances, which is obtained by a random repeatedly sampling scheme of available tree nodes and constructing graphs. By referencing to the null distribution, *Tapas* generates a p-value to represent the trustworthy of cell type annotation. A small p-value is a flag of high heterogeneity and less trustworthy of the annotation results. 
+
 ## Installation 
 
 You can install the development version of **Tapas** from GitHub,run the following commands in R:
@@ -34,7 +39,7 @@ predict_res # The result is a data.frame, the column is run times, and row is th
 # Using the predict_res to calculate the p-value
 data(list = c("heart_df","heart_distance_mtx","kidney_df","kidney_distance_mtx","lung_df","lung_distance_mtx","pbmc_df","pbmc_distance_mtx","marker_PBMC"),package = "Tapas") 
 p_res<-tapas_pipeline(predict_res,N=3,tissue="PBMC")
-p_res # A higher p-value indicates greater stability in the ChatGPT cell type annotation.
+p_res #  A small p-value is a flag of high heterogeneity and less trustworthy of the annotation results. 
 ```
 
 ## Contact
