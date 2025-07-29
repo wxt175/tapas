@@ -90,4 +90,4 @@ p_res
 A small p-value is a flag of high heterogeneity and less trustworthy of the annotation results. But in this example, the results are stable and accurat.
 
 ## Contact
-Authors: Wen Tang (wxt175@case.edu)
+Authors: Wen Tang (Wen.Tang@uth.tmc.edu)
