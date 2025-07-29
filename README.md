@@ -1,5 +1,13 @@
-Tapas: An R package to taming the uncertainty of Chatgpt in cell type annotation
-====
+<table>
+<tr>
+<td><img src="https://raw.githubusercontent.com/wxt175/Tapas/main/Tapas_logo.png" width="200"></td>
+<td>
+  <h1 style="margin: 0px; padding-left: 10px;">
+    <strong>Tapas: An R package to taming the uncertainty of ChatGPT in cell type annotation</strong>
+  </h1>
+</td>
+</tr>
+</table>
 
 ## Introduction
 Cell type annotation is a critical and fundamental step in the analysis of single-cell data. Recently, large language models (LLMs) are demonstrating potential and highly useful tools in various aspects of biomedical research, as well as cell type annotation tasks. Generative pre-trained transformers (GPT), including GPT-3.5 and GPT-4, have demonstrated impressive, human expert-equivalent accuracy for cell type annotation. However, when prompt GPTs for multiple time with the same marker genes input, users often experience varied cell type label outcomes.
