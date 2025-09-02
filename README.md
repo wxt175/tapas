@@ -3,7 +3,7 @@
 <td><img src="https://raw.githubusercontent.com/wxt175/Tapas/main/Tapas_logo.png" width="250"></td>
 <td>
   <h1 style="margin: 0; padding-left: 20px; font-size: 3em; font-weight: bold;">
-    Tapas: An R package to taming the uncertainty of ChatGPT in cell type annotation
+    tapas: An R package to taming the uncertainty of ChatGPT in cell type annotation
   </h1>
 </td>
 </tr>
