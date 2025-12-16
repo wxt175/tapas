@@ -1,4 +1,5 @@
 
+###gpt function###
 gptcelltypeanno <- function(input, tissuename=NULL, model='gpt-4', topgenenumber = 10) {
   API.flag <- 1
   if (class(input)=='list') {
@@ -44,8 +45,320 @@ gptcelltypeanno <- function(input, tissuename=NULL, model='gpt-4', topgenenumber
   
 }
 
+###Clauude  function###
+claudecelltypeanno <- function(input, tissuename=NULL, model="claude-sonnet-4-20250514", 
+                               topgenenumber = 10, api_key = Sys.getenv("ANTHROPIC_API_KEY")) {
+  
+  # Check if API key is available
+  if (api_key == "") {
+    stop("ANTHROPIC_API_KEY not found. Set it using Sys.setenv(ANTHROPIC_API_KEY='your-key')")
+  }
+  
+  # Process input
+  if (class(input) == 'list') {
+    input <- sapply(input, paste, collapse = ',')
+  } else {
+    input <- input[input$avg_log2FC > 0, , drop = FALSE]
+    input <- tapply(input$gene, list(input$cluster), 
+                    function(i) paste0(i[1:topgenenumber], collapse = ','))
+  }
+  
+  print("Note: Anthropic API key found: returning the cell type annotations.")
+  
+  # Split into batches of 30 to avoid overwhelming the API
+  cutnum <- ceiling(length(input) / 30)
+  if (cutnum > 1) {
+    cid <- as.numeric(cut(1:length(input), cutnum))	
+  } else {
+    cid <- rep(1, length(input))
+  }
+  
+  # Process each batch
+  allres <- sapply(1:cutnum, function(i) {
+    id <- which(cid == i)
+    flag <- 0
+    
+    while (flag == 0) {
+      tryCatch({
+        # Prepare the prompt
+        prompt <- paste0(
+          'Identify cell types of ', tissuename, 
+          'cells using the following markers separately for each row. ',
+          'Only provide the cell type name. Do not show numbers before the name. ',
+          'Some can be a mixture of multiple cell types.\n',
+          paste(names(input)[id], ':', input[id], collapse = '\n')
+        )
+        
+        # Make API call to Claude
+        response <- httr::POST(
+          url = "https://api.anthropic.com/v1/messages",
+          httr::add_headers(
+            "x-api-key" = api_key,
+            "anthropic-version" = "2023-06-01",
+            "content-type" = "application/json"
+          ),
+          body = jsonlite::toJSON(list(
+            model = model,
+            max_tokens = 1024,
+            messages = list(
+              list(
+                role = "user",
+                content = prompt
+              )
+            )
+          ), auto_unbox = TRUE),
+          encode = "json"
+        )
+        
+        # Parse response
+        if (httr::status_code(response) == 200) {
+          content <- httr::content(response, "parsed")
+          res <- strsplit(content$content[[1]]$text, '\n')[[1]]
+          
+          # Remove empty lines and clean up
+          res <- res[res != ""]
+          
+          # Remove numbering if present (e.g., "1. ", "1) ", etc.)
+          res <- gsub("^[0-9]+[\\.\\)\\-]\\s*", "", res)
+          
+          if (length(res) == length(id)) {
+            flag <- 1
+          }
+        } else {
+          warning(paste("API call failed with status:", httr::status_code(response)))
+        }
+        
+      }, error = function(e) {
+        warning(paste("Error in API call:", e$message))
+      })
+    }
+    
+    names(res) <- names(input)[id]
+    res
+  }, simplify = FALSE)
+  
+  return(gsub(',$', '', unlist(allres)))
+}
 
+### Gemini Fundtion
+geminicelltypeanno <- function(input, tissuename=NULL, model="gemini-1.5-flash", 
+                               topgenenumber = 10, api_key = Sys.getenv("GEMINI_API_KEY")) {
+  
+  # Check if API key is available
+  if (api_key == "") {
+    stop("GEMINI_API_KEY not found. Set it using Sys.setenv(GEMINI_API_KEY='your-key')")
+  }
+  
+  # Process input
+  if (class(input) == 'list') {
+    input <- sapply(input, paste, collapse = ',')
+  } else {
+    input <- input[input$avg_log2FC > 0, , drop = FALSE]
+    input <- tapply(input$gene, list(input$cluster), 
+                    function(i) paste0(i[1:topgenenumber], collapse = ','))
+  }
+  
+  print("Note: Gemini API key found: returning the cell type annotations.")
+  
+  # Split into batches of 30
+  cutnum <- ceiling(length(input) / 30)
+  if (cutnum > 1) {
+    cid <- as.numeric(cut(1:length(input), cutnum))	
+  } else {
+    cid <- rep(1, length(input))
+  }
+  
+  # Process each batch
+  allres <- sapply(1:cutnum, function(i) {
+    id <- which(cid == i)
+    flag <- 0
+    
+    while (flag == 0) {
+      # Prepare the prompt
+      prompt <- paste0(
+        'Identify cell types of ', tissuename, 
+        'cells using the following markers separately for each row. ',
+        'Only provide the cell type name. Do not show numbers before the name. ',
+        'Some can be a mixture of multiple cell types.\n\n',
+        paste(names(input)[id], ':', input[id], collapse = '\n')
+      )
+      
+      # Build the API URL
+      url <- paste0(
+        "https://generativelanguage.googleapis.com/v1beta/models/",
+        model,
+        ":generateContent?key=",
+        api_key
+      )
+      
+      # Make the API request
+      response <- httr::POST(
+        url = url,
+        httr::add_headers("Content-Type" = "application/json"),
+        body = jsonlite::toJSON(list(
+          contents = list(
+            list(
+              parts = list(
+                list(text = prompt)
+              )
+            )
+          )
+        ), auto_unbox = TRUE),
+        encode = "json"
+      )
+      
+      # Check if successful
+      if (httr::status_code(response) == 200) {
+        content <- httr::content(response, "parsed")
+        
+        # Try to extract the text response
+        tryCatch({
+          text_response <- content$candidates[[1]]$content$parts[[1]]$text
+          res <- strsplit(text_response, '\n')[[1]]
+          
+          # Clean up the results
+          res <- res[res != ""]
+          res <- gsub("^[0-9]+[\\.\\)\\-]\\s*", "", res)
+          
+          # Check if we got the right number of results
+          if (length(res) == length(id)) {
+            flag <- 1
+          }
+        }, error = function(e) {
+          warning(paste("Error parsing response:", e$message))
+        })
+      } else {
+        warning(paste("API call failed with status:", httr::status_code(response)))
+        error_msg <- httr::content(response, "text")
+        print(error_msg)
+      }
+    }
+    
+    names(res) <- names(input)[id]
+    res
+  }, simplify = FALSE)
+  
+  
+  return(gsub(',$', '', unlist(allres)))
+}
 
+### DeepSeek Function
+deepseekcelltypeanno <- function(input, 
+                                 tissuename = NULL, 
+                                 model = "deepseek-chat", 
+                                 topgenenumber = 10,
+                                 api_key = Sys.getenv("DEEPSEEK_API_KEY"),
+                                 batch_size = 10) {
+  
+  API.flag <- 1
+  
+  if (api_key == "") {
+    API.flag <- 0
+    warning("DEEPSEEK_API_KEY not found.")
+  }
+  
+  # Process input
+  if (class(input) == 'list') {
+    input <- sapply(input, paste, collapse = ',')
+  } else {
+    input <- input[input$avg_log2FC > 0, , drop = FALSE]
+    input <- tapply(input$gene, list(input$cluster), 
+                    function(i) paste0(i[1:topgenenumber], collapse = ','))
+  }
+  
+  message <- paste0(
+    'Identify cell types of ', tissuename, 'Cells using the following markers separately for each row.\n',
+    'Only provide the cell type name. Do not show numbers before the name.\n',
+    'Some can be a mixture of multiple cell types.',
+    paste0(names(input), ':', unlist(input), collapse = "\n")
+  )
+  
+  if (!API.flag) {
+    return(message)
+  } else {
+    print("Note: DeepSeek API key found: returning the cell type annotations.")
+    
+    cutnum <- ceiling(length(input) / batch_size)
+    if (cutnum > 1) {
+      cid <- as.numeric(cut(1:length(input), cutnum))
+    } else {
+      cid <- rep(1, length(input))
+    }
+    
+    cat("Processing", length(input), "clusters in", cutnum, "batches\n")
+    
+    allres <- sapply(1:cutnum, function(i) {
+      id <- which(cid == i)
+      flag <- 0
+      res <- NULL
+      
+      cat("Batch", i, "/", cutnum, "...")
+      
+      while (flag == 0) {
+        
+        tryCatch({
+          response <- httr::POST(
+            url = "https://api.deepseek.com/chat/completions",
+            httr::add_headers(
+              "Authorization" = paste("Bearer", api_key),
+              "Content-Type" = "application/json"
+            ),
+            body = jsonlite::toJSON(list(
+              model = model,
+              messages = list(list(
+                role = "user",
+                content = paste0(
+                  'Identify cell types of ', tissuename, 'Cells using the following markers separately for each row.\n',
+                  'Only provide the cell type name. Do not show numbers and row infromation before the name.\n',
+                  'Some can be a mixture of multiple cell types.\n',
+                  paste(input[id], collapse = '\n')
+                )
+              )),
+              temperature = 0.7,
+              max_tokens = 1024
+            ), auto_unbox = TRUE),
+            encode = "json",
+            httr::timeout(60)
+          )
+          
+          if (httr::status_code(response) == 200) {
+            content <- httr::content(response, "parsed")
+            text_content <- content$choices[[1]]$message$content
+            
+            res <- strsplit(text_content, '\n')[[1]]
+            res <- res[res != ""]
+            # FIXED: Move hyphen to the end of character class
+            res <- gsub("^[0-9]+[\\.\\):-]\\s*", "", res)  # Fixed regex
+            res <- trimws(res)
+            
+            if (length(res) == length(id)) {
+              flag <- 1
+              cat(" Done\n")
+            } else {
+              cat(" Retry (got", length(res), "expected", length(id), ")\n")
+            }
+          } else {
+            cat(" Error:", httr::status_code(response), "\n")
+          }
+          
+        }, error = function(e) {
+          cat(" Error:", e$message, "\n")
+        })
+        
+        if (flag == 0) {
+          Sys.sleep(1)
+        }
+      }
+      
+      names(res) <- names(input)[id]
+      res
+      
+    }, simplify = FALSE)
+    
+    return(gsub(',$', '', unlist(allres)))
+  }
+}
+                    
 Assign_ct_Tree<- function(test_celltype, tree_df, model = 'gpt-4') {
   # Retrieve the OpenAI API key from environment variables
   OPENAI_API_KEY <- Sys.getenv("OPENAI_API_KEY")
@@ -125,7 +438,7 @@ Assign_Multiple_Cell_Types <- function(cell_type_lists, tree_df, model = 'gpt-4'
   return(classification_results)
 }
 
-
+### Calculate the average distance
 Get_avg_dis <- function(assigned_result_list, frequency_table_list, distance_mtx, N = 20) {
   Avg_distance <- list()  # Initialize list to store average distances
   
@@ -216,6 +529,7 @@ Get_avg_dis <- function(assigned_result_list, frequency_table_list, distance_mtx
   return(Avg_dis)  # Return the list of average distances
 }
 
+###Get the truthworthy value
 get_pval<-function(score,shape,rate){
   # Lower tail (P(X <= x)) for values less than or equal to x
   p_value_lower <- pgamma(score, shape = shape, rate = rate)
@@ -231,3 +545,5 @@ get_p_vector<-function(vector,shape,rate){
   }
   return(p_res)
 }
+
+                    
