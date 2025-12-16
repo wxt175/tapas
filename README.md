@@ -150,11 +150,12 @@ We provide a function called `tapas_pipeline` to quantify the `CT_predict` resul
 
 ```{r eval = FALSE}
 #Load all the reference panel
-data(list = c("heart_df","heart_distance_mtx","kidney_df","kidney_distance_mtx","lung_df","lung_distance_mtx","pbmc_df","pbmc_distance_mtx","marker_PBMC"),package = "Tapas")
+data(list = c("heart_df","heart_distance_mtx","kidney_df","kidney_distance_mtx","lung_df","lung_distance_mtx","pbmc_df","pbmc_distance_mtx",
+"brain_df","brain_distance_mtx_na","breast_df","breast_distance_mtx_na","liver_df","liver_distance_mtx_na","marker_PBMC"),package = "Tapas")
 
-t_res<-tapas_pipeline(predict_res,N=3,tissue="PBMC")
+t_res<-tapas_pipeline(predict_gpt,N=3,tissue="PBMC")
 
-p_res
+t_res
 [1] 1.0000000 0.9761953 0.9903353 1.0000000 1.0000000
 ```
 A small *t*-value is a flag of high heterogeneity and less trustworthy of the annotation results. But in this example, the results are stable and accurat.
