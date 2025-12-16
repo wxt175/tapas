@@ -25,18 +25,46 @@ devtools::install_github("wxt175/tapas")
 
 ##  How to use *tapas*
 
-### Step 1 : Assign your OpenAI API key. 
-*Tapas* integrates the OpenAI API into the package. A secret API key is required to connect the OpenAI. To avoid the risk of exposing the API key or committing the key to browsers, users need to set up the API key as a system environment variable before running *tapas*. 
+### Step 1 : Assign your API key. 
+*Tapas* integrates 4 large language model (OpenAI, Claude, Gemini, DeepSeek) API into the package. A secret API key is required to connect the LLMs. To avoid the risk of exposing the API key or committing the key to browsers, users need to set up the API key as a system environment variable before running *tapas*. 
 
-Steps for generating an OpenAI API key:
+#### Steps for generating an OpenAI API key:
 * Log in to your OpenAI account at https://platform.openai.com/.
+* Navigate to the API Keys section under your profile settings.
+* Click Create new secret key.
+* ⚠️ Copy and securely store your API key, as you will not be able to view it again.
+
+#### Steps for generating an Claude API key:
+* Log in to your Claude account at https://platform.claude.com/ .
+* Navigate to the API Keys section under your profile settings.
+* Click Create new secret key.
+* ⚠️ Copy and securely store your API key.
+
+#### Steps for generating an Gemini API key:
+* Get a gemini API key at [Google AI studio](https://aistudio.google.com/app/api-keys).
+* Navigate to the API Keys section under your profile settings.
+* Click Create new secret key at the top right.
+* ⚠️ Copy and securely store your API key.
+
+#### Steps for generating an DeepSeek API key:
+* Log in to your DeepSeek account at https://platform.deepseek.com/ .
 * Navigate to the API Keys section under your profile settings.
 * Click Create new secret key.
 * ⚠️ Copy and securely store your API key, as you will not be able to view it again.
 
 After you create your own API key, set the API Key as an environment variable in R.
 ```{r eval = FALSE}
+# For OpenAI API Key setting
 Sys.setenv(OPENAI_API_KEY = 'your_openai_API_key')
+
+# For Claude API Key setting
+Sys.setenv(ANTHROPIC_API_KEY = 'your_openai_API_key')
+
+# For Gemini API Key setting
+Sys.setenv(GEMINI_API_KEY = 'your_openai_API_key')
+
+# For DeepSeek API Key setting
+Sys.setenv(DEEPSEEK_API_KEY = 'your_openai_API_key')
 ```
 
 ### Step 2: Install and Load packages
@@ -44,15 +72,33 @@ Sys.setenv(OPENAI_API_KEY = 'your_openai_API_key')
 install.packages("openai")
 library(tapas)
 library(openai)
+library(readxl)
+library(httr)
+library(jsonlite)
 ```
 
 ### Step 3: Using marker gene to predict cell types by run multiple times
-*tapas* offers the function `CT_GPTpredict` to annotate the cell types for N times by OpenAI GPT models. Users need to provide a list of marker genes and and specify the number of runs to assess the stability of the results.\
+*tapas* offers the function `CT_predict` to annotate the cell types for N times by LLMs models. Users need to provide a list of marker genes and and specify the number of runs to assess the stability of the results.\
 In  `CT_GPTpredict` function, each argument explaination: \
 **N**: Run times;\
 **marker**: A list of marker genes; \
 **tissueName**(optional): Tissue of markers or NULL; \
-**model**: A valid GPT-4 or GPT-3.5 model name
+**provider**: LLM provider. Must be one of: "gpt" - OpenAI GPT models\
+"claude" - Anthropic Claude models\
+"gemini" - Google Gemini models\
+"deepseek" - DeepSeek models \
+**model**: A valid model version specification. If NULL, uses default models:\
+GPT: "gpt-4"\
+Claude: "claude-sonnet-4-20250514"\
+Gemini: "gemini-pro"\
+DeepSeek: "deepseek-chat"\
+
+For custom models, see provider documentation:\
+OpenAI: https://platform.openai.com/docs/models\
+Anthropic: https://docs.anthropic.com/claude/docs/models-overview\
+Google: https://ai.google.dev/models/gemini\
+DeepSeek: https://platform.deepseek.com/api-docs/\
+**seed**:Random seed for reproducibility.
 
 ```{r eval = TRUE, message=FASLSE, warning=FALSE}
 data("marker_PBMC")
@@ -72,9 +118,24 @@ marker_PBMC
 [[5]]
  [1] "PPBP"      "PF4"       "NRGN"      "GNG11"     "CAVIN2"    "TUBB1"     "CLU"       "HIST1H2AC" "RGS18"     "GP9"     
 
-predict_res<-CT_GPTpredict(N=3,marker= marker_PBMC, tissueName='PBMC', model='gpt-4')
+# Using OpenAI GPT with default settings
+ predict_gpt <- CT_predict(N = 3, marker = marker_PBMC, 
+                           tissueName = 'PBMC', provider = 'gpt')
 
-print(predict_res)
+# Using Claude with custom model
+predict_claude <- CT_predict(N = 3, marker = marker_PBMC, 
+                             tissueName = 'PBMC', provider = 'claude',
+                             model = 'claude-opus-4-20250514',seed=1234)
+
+print(predict_gpt)
+         X1        X2                                X3
+1   B Cells   B Cells                           B cells
+2   T Cells   T Cells                      CD4+ T cells
+3   T Cells   T Cells CD8+ T cells or Cytotoxic T cells
+4 Monocytes Monocytes                         Monocytes
+5 Platelets Platelets                         Platelets
+
+print(predict_claude)
          X1        X2                                X3
 1   B Cells   B Cells                           B cells
 2   T Cells   T Cells                      CD4+ T cells
@@ -85,7 +146,7 @@ print(predict_res)
 ```
 
 ### Step 4: Assess the cell type annotation results 
-We provide a function called `tapas_pipeline` to quantify the `CT_GPTpredict` results by returning the *t*-value. In *tapas*, we provide well-constructed hierarchy tree of PBMC, Heart, Kidney and Lung as well as the cell type distance matrix reference data. In `tapas_pipeline` function, the input should be a data.frame with predicted cell types by N runs or the results generated by `CT_GPTpredict`.
+We provide a function called `tapas_pipeline` to quantify the `CT_predict` results by returning the *t*-value. In *tapas*, we provide well-constructed hierarchy tree of PBMC, Heart, Kidney, Lung, Brain, Breast and Liver as well as the cell type distance matrix reference data. In `tapas_pipeline` function, the input should be a data.frame with predicted cell types by N runs or the results generated by `CT_predict`.
 
 ```{r eval = FALSE}
 #Load all the reference panel
