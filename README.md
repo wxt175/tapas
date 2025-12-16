@@ -125,7 +125,7 @@ marker_PBMC
 # Using Claude with custom model
 predict_claude <- CT_predict(N = 3, marker = marker_PBMC, 
                              tissueName = 'PBMC', provider = 'claude',
-                             model = 'claude-opus-4-20250514',seed=1234)
+                             model = 'claude-haiku-4-5-20251001',seed=1234)
 
 print(predict_gpt)
         X1                X2        X3
@@ -136,12 +136,12 @@ print(predict_gpt)
 5    Platelets         Platelets Platelets
 
 print(predict_claude)
-         X1        X2                                X3
-1   B Cells   B Cells                           B cells
-2   T Cells   T Cells                      CD4+ T cells
-3   T Cells   T Cells CD8+ T cells or Cytotoxic T cells
-4 Monocytes Monocytes                         Monocytes
-5 Platelets Platelets                         Platelets
+                    X1                   X2                  X3
+1              B cells              B cells              B cell
+2 Natural Killer cells Natural Killer cells Natural killer cell
+3    Cytotoxic T cells    Cytotoxic T cells    Cytotoxic T cell
+4            Monocytes            Monocytes            Monocyte
+5            Platelets            Platelets            Platelet
 
 ```
 
