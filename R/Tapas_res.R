@@ -18,7 +18,7 @@
 
 
 tapas_pipeline <- function(cell_type_lists,
-                           model = 'gpt-4', N = 20, tissue = c("PBMC", "Heart", "Lung", "Kidney")) {
+                           model = 'gpt-4', N = 20, tissue = c("PBMC", "Heart", "Lung", "Kidney","Brain","Breast","Liver")) {
   # Ensure a valid tissue is provided
   tissue <- match.arg(tissue)
   
@@ -47,6 +47,24 @@ tapas_pipeline <- function(cell_type_lists,
       rate     = 0.1486833,
       tree     = kidney_df,        
       distance = kidney_dis_mtx_na    
+    ),
+    Brain = list(
+      shape    = 1.9258,  
+      rate     = 0.0829,
+      tree     = brain_df,          
+      distance = brain_dis_mtx_na      
+    ),
+    Breast = list(
+      shape    = 2.5789,  
+      rate     = 0.13225,
+      tree     = breast_df,          
+      distance = breast_dis_mtx_na      
+    ),
+    Liver = list(
+      shape    = 2.49427,  
+      rate     = 0.14472,
+      tree     = liver_df,          
+      distance = liver_dis_mtx_na      
     )
   )
   
