@@ -128,12 +128,12 @@ predict_claude <- CT_predict(N = 3, marker = marker_PBMC,
                              model = 'claude-opus-4-20250514',seed=1234)
 
 print(predict_gpt)
-         X1        X2                                X3
-1   B Cells   B Cells                           B cells
-2   T Cells   T Cells                      CD4+ T cells
-3   T Cells   T Cells CD8+ T cells or Cytotoxic T cells
-4 Monocytes Monocytes                         Monocytes
-5 Platelets Platelets                         Platelets
+        X1                X2        X3
+1      B Cells           B Cells   B Cells
+2 CD4+ T Cells Cytotoxic T Cells   T Cells
+3 CD8+ T Cells Cytotoxic T Cells   T Cells
+4    Monocytes         Monocytes Monocytes
+5    Platelets         Platelets Platelets
 
 print(predict_claude)
          X1        X2                                X3
