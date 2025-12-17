@@ -440,8 +440,8 @@ Assign_Multiple_Cell_Types <- function(cell_type_lists, tree_df, model = 'gpt-4'
 }
 
 
-Get_avg_dis <- function(assigned_result_list, frequency_table_list, distance_mtx) {
-  N<-length(assigned_result_list)
+Get_avg_dis <- function(assigned_result_list, frequency_table_list, distance_mtx,N=20) {
+
   Avg_distance <- list()  # Initialize list to store average distances
   
   # Loop through each assigned result
