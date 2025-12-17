@@ -74,7 +74,7 @@ tapas_pipeline <- function(cell_type_lists,
   distance_mtx <- tissue_params$distance
   shape       <- tissue_params$shape
   rate        <- tissue_params$rate
-  N           <- c(ncol(cell_type_lists))
+  N <- ncol(cell_type_lists)
   
   # Step 1: Assign cell types for each cell type list
   frequency_table_list <- apply(cell_type_lists, 1, table)
