@@ -77,12 +77,14 @@ library(jsonlite)
 ```
 
 ### Step 3: Using marker gene to predict cell types by run multiple times
-*tapas* offers the function `CT_predict` to annotate the cell types for N times by LLMs models. Users need to provide a list of marker genes and and specify the number of runs to assess the stability of the results.\
+When prompting LLMs multiple times with the same marker gene input, users may observe variation in the predicted cell type labels. Because LLMs rely on statistical patterns and probabilistic text generation, there is rarely a single “correct” answer—multiple plausible outputs can occur with different likelihoods.
+To help evaluate this variability, *tapas* offers the function `CT_predict`, which generates cell type predictions *N* times using LLM-based models. Users simply need to supply a list of marker genes and specify the number of runs as well as the LLM model in order to assess the stability and consistency of the predictions.\
 In  `CT_GPTpredict` function, each argument explaination: \
 **N**: Run times;\
 **marker**: A list of marker genes; \
 **tissueName**(optional): Tissue of markers or NULL; \
-**provider**: LLM provider. Must be one of: "gpt" - OpenAI GPT models\
+**provider**: LLM provider. Must be one of: \
+"gpt" - OpenAI GPT models\
 "claude" - Anthropic Claude models\
 "gemini" - Google Gemini models\
 "deepseek" - DeepSeek models \
@@ -100,7 +102,7 @@ DeepSeek: https://platform.deepseek.com/api-docs/\
 **seed**:Random seed for reproducibility.
 
 ```{r eval = TRUE, message=FASLSE, warning=FALSE}
-data("marker_PBMC")
+data('marker_PBMC')
 marker_PBMC
 [[1]]
  [1] "MS4A1"     "COCH"      "AIM2"      "BANK1"     "SSPN"      "CD79A"     "TEX9"      "RALGPS2"   "TNFRSF13C" "LINC01781"
@@ -118,30 +120,47 @@ marker_PBMC
  [1] "PPBP"      "PF4"       "NRGN"      "GNG11"     "CAVIN2"    "TUBB1"     "CLU"       "HIST1H2AC" "RGS18"     "GP9"     
 
 # Using OpenAI GPT with default settings
- predict_gpt <- CT_predict(N = 3, marker = marker_PBMC, 
+ predict_gpt <- CT_predict(N = 20, marker = marker_PBMC, 
                            tissueName = 'PBMC', provider = 'gpt')
 
 # Using Claude with custom model
-predict_claude <- CT_predict(N = 3, marker = marker_PBMC, 
+predict_claude <- CT_predict(N = 20, marker = marker_PBMC, 
                              tissueName = 'PBMC', provider = 'claude',
                              model = 'claude-haiku-4-5-20251001',seed=1234)
 
 print(predict_gpt)
-        X1                X2        X3
-1      B Cells           B Cells   B Cells
-2 CD4+ T Cells Cytotoxic T Cells   T Cells
-3 CD8+ T Cells Cytotoxic T Cells   T Cells
-4    Monocytes         Monocytes Monocytes
-5    Platelets         Platelets Platelets
+                 X1       X2        X3                X4        X5               X6          X7         X8           X9         X10          X11          X12
+1           B Cells   B Cell   B cells           B cells   B Cells           B Cell     B Cells     B Cell      B cells     B cells      B cells      B Cells
+2 Cytotoxic T Cells   T Cell   T cells Cytotoxic T cells   T Cells       CD4 T Cell CD4 T Cells CD4 T Cell CD4+ T cells CD4 T cells CD4+ T cells CD4+ T Cells
+3 Cytotoxic T Cells   T Cell   T cells           T cells   T Cells Cytotoxic T Cell CD8 T Cells CD8 T Cell CD8+ T cells CD8 T cells CD8+ T cells CD8+ T Cells
+4         Monocytes Monocyte Monocytes         Monocytes Monocytes         Monocyte   Monocytes  Monocytes    Monocytes   Monocytes    Monocytes    Monocytes
+5         Platelets Platelet Platelets         Platelets Platelets         Platelet   Platelets  Platelets    Platelets   Platelets    Platelets    Platelets
+                X13            X14                                 X15       X16       X17       X18          X19       X20
+1           B Cells        B Cells                             B cells   B Cells   B Cells   B Cells      B-cells   B Cells
+2 Cytotoxic T Cells T Cells (CD4+)     T cells or Natural Killer cells   T Cells   T Cells   T Cells CD4+ T-cells   T Cells
+3 Cytotoxic T Cells T Cells (CD8+) Cytotoxic T cells or Memory T cells   T Cells   T Cells   T Cells CD8+ T-cells   T Cells
+4         Monocytes      Monocytes            Monocytes or Neutrophils Monocytes Monocytes Monocytes    Monocytes Monocytes
+5         Platelets      Platelets                           Platelets Platelets Platelets Platelets    Platelets Platelets
 
 print(predict_claude)
-                    X1                   X2                  X3
-1              B cells              B cells              B cell
-2 Natural Killer cells Natural Killer cells Natural killer cell
-3    Cytotoxic T cells    Cytotoxic T cells    Cytotoxic T cell
-4            Monocytes            Monocytes            Monocyte
-5            Platelets            Platelets            Platelet
-
+                    X1                   X2                   X3                   X4                   X5                   X6                  X7
+1              B cells              B cells              B cells              B cells              B cells              B cells              B cell
+2 Natural Killer cells Natural Killer cells Natural Killer cells Natural Killer cells Natural Killer cells Natural Killer cells Natural killer cell
+3    Cytotoxic T cells    Cytotoxic T cells    Cytotoxic T cells    Cytotoxic T cells    Cytotoxic T cells    Cytotoxic T cells    Cytotoxic T cell
+4            Monocytes            Monocytes            Monocytes            Monocytes            Monocytes            Monocytes            Monocyte
+5            Platelets            Platelets            Platelets            Platelets            Platelets            Platelets            Platelet
+                    X8                   X9                  X10                  X11                 X12                  X13                  X14
+1              B cells              B cells              B cells              B cells              B cell              B cells              B cells
+2 Natural Killer cells Natural Killer cells Natural killer cells Natural Killer cells Natural killer cell Natural Killer cells Natural Killer cells
+3    Cytotoxic T cells    Cytotoxic T cells    Cytotoxic T cells    Cytotoxic T cells    Cytotoxic T cell    Cytotoxic T cells    Cytotoxic T cells
+4            Monocytes            Monocytes            Monocytes            Monocytes            Monocyte            Monocytes            Monocytes
+5            Platelets            Platelets            Platelets            Platelets            Platelet            Platelets            Platelets
+                   X15                  X16                 X17                  X18                  X19                  X20
+1              B cells              B cells              B cell              B cells              B cells              B cells
+2 Natural Killer cells Natural Killer cells Natural Killer cell Natural Killer cells Natural Killer cells Natural Killer cells
+3    Cytotoxic T cells    Cytotoxic T cells    Cytotoxic T cell    Cytotoxic T cells    Cytotoxic T cells    Cytotoxic T cells
+4            Monocytes            Monocytes            Monocyte            Monocytes            Monocytes            Monocytes
+5            Platelets            Platelets            Platelet            Platelets            Platelets            Platelets
 ```
 
 ### Step 4: Assess the cell type annotation results 
@@ -152,11 +171,11 @@ We provide a function called `tapas_pipeline` to quantify the `CT_predict` resul
 data(list = c("heart_df","heart_distance_mtx","kidney_df","kidney_distance_mtx","lung_df","lung_distance_mtx","pbmc_df","pbmc_distance_mtx",
 "brain_df","brain_distance_mtx_na","breast_df","breast_distance_mtx_na","liver_df","liver_distance_mtx_na","marker_PBMC"),package = "Tapas")
 
-t_res<-tapas_pipeline(predict_gpt,N=3,tissue="PBMC")
+t_res<-tapas_pipeline(predict_gpt,tissue="PBMC")
 
 t_res
-[1] 1.0000000 0.9761953 0.9903353 1.0000000 1.0000000
+[1] 1.0000000 0.9591950 0.9762391 1.0000000 1.0000000
 ```
-A small *t*-value is a flag of high heterogeneity and less trustworthy of the annotation results. But in this example, the results are stable and accurat.
+A small *t*-value is a flag of high heterogeneity and suggests that the annotation results may be less reliable. In this example, we supplied a set of PBMC marker genes for five clusters, so `tapas_pipeline` returned five corresponding t-values. All of the t-values are greater than 0.95, indicating that the GPT-based predictions are stable and accurate.
 
 
