@@ -81,7 +81,7 @@ tapas_pipeline <- function(cell_type_lists,
   assigned_results <- Assign_Multiple_Cell_Types(frequency_table_list, tree_df, model)
   
   # Step 2: Compute the weighted average distances
-  avg_distance <- Get_avg_dis(assigned_results, frequency_table_list, distance_mtx, N)
+  avg_distance <- Get_avg_dis(assigned_results, frequency_table_list, distance_mtx, N=N)
   
   # Step 3: Calculate p-values for each average distance using the gamma distribution.
   p_values <- get_p_vector(avg_distance, shape, rate)
