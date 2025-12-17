@@ -70,9 +70,8 @@ Sys.setenv(DEEPSEEK_API_KEY = 'your_openai_API_key')
 ### Step 2: Install and Load packages
 ```{r eval = FALSE}
 install.packages("openai")
-library(tapas)
+library(Tapas)
 library(openai)
-library(readxl)
 library(httr)
 library(jsonlite)
 ```
